@@ -195,6 +195,7 @@ own Telegram, a natural transport for this gate),
 machine instead of a copy in every session), and
 [`agent-leash`](https://github.com/tonydzi/agent-leash) (LEASH-8: the broader control model
 for agents with delegated authority — this gate is one domain of it, implemented).
+Rolling that approved change out to more than one machine? [`fleet-deploy`](https://github.com/tonydzi/fleet-deploy) does it with a canary order and a verify that must read the fact back, so "applied" is not a synonym for "sent".
 Questions, or a step that does not work? Open an issue — we answer within 24h.
 
 ---
