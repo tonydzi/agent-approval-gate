@@ -1,0 +1,7 @@
+approval.json
+approvals.db
+approval_log.jsonl
+fake_replies.json
+transports/.tg_offset
+__pycache__/
+*.pyc

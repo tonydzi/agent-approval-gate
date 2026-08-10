@@ -1,0 +1,50 @@
+{
+  "_doc": "Copy to approval.json and fill in. The security model: authority comes from WHO sent the reply (the identities below), never from what the message says. The token is a second factor -- a deliberate-intent marker that separates a real decision from casual chatter in the same window.",
+
+  "token": "OK",
+  "approve_words": ["+", "yes", "ok", "go"],
+  "reject_words": ["NO", "STOP", "CANCEL"],
+  "max_reply_chars": 40,
+  "_reply_doc": "A verdict is SHORT. Anything longer than max_reply_chars is treated as discussion, not a decision -- so a paragraph that happens to contain '+' never approves anything.",
+
+  "freshness_min": 15,
+  "max_reping": 4,
+  "abandon_hours": 24,
+  "_timing_doc": "freshness_min: how long a FREE reply ('+' with no id) can still answer the newest question. A BOUND reply (quoted envelope, or '#id' typed by hand) is honoured regardless of age -- that is the point of binding. max_reping: nudges before the wording gets louder; at 2x that the question goes stale and is never asked again. abandon_hours: a question created that long ago and never re-pinged (your supervisor was down) is retired SILENTLY. Do not resurrect yesterday's decision into someone's face.",
+
+  "touches_per_day_budget": 6,
+  "_budget_doc": "Used by `metrics` to flag days where the gate turned into a queue. Not enforced -- it is a mirror, not a limiter.",
+
+  "approvers": [
+    {
+      "name": "Alex Rivera",
+      "role": "owner",
+      "ids": {
+        "telegram": "100000001",
+        "slack": "U01ABCDEF00",
+        "email": "alex@example.com",
+        "sms": "+15550100001"
+      }
+    },
+    {
+      "name": "Sam Okafor",
+      "role": "deputy",
+      "ids": {
+        "telegram": "100000002",
+        "slack": "U01ABCDEF01"
+      }
+    },
+    {
+      "name": "Unfilled Deputy",
+      "role": "deputy",
+      "ids": {}
+    }
+  ],
+  "_approvers_doc": "Any listed identity can decide; the journal records WHO. An entry with no ids is INERT -- registered but unable to authorize. That is deliberate: a half-configured deputy must fail closed, never become a wildcard.",
+
+  "targets": {
+    "primary": "-1000000000001",
+    "fallback": "-1000000000002"
+  },
+  "_targets_doc": "primary MUST be a channel that contains nothing but approval questions. This is not a style preference: we ran asks into a busy working channel first and they were buried under status messages within minutes. A sterile channel is the difference between a gate and a decoration. fallback is optional -- a second rail for the case where the first transport is down."
+}
