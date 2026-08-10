@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use agent-approval-gate in research or software, please cite it as below."
+title: "agent-approval-gate"
+type: software
+authors:
+  - family-names: Dziatkovskii
+    given-names: Anton
+    orcid: "https://orcid.org/0000-0001-7408-3054"
+    affiliation: "Palo Alto AI Research Lab"
+repository-code: "https://github.com/tonydzi/agent-approval-gate"
+url: "https://github.com/tonydzi/agent-approval-gate"
+license: MIT
+abstract: >-
+  A dependency-free approval gate for unattended agents. When an agent hits an action it
+  must not decide alone, or physically cannot perform, the ask goes to a messenger, the
+  answer comes back into the run, silence is re-pinged, escalated and finally abandoned
+  rather than resurrected. Its substance is the decision-class table: internal, own-channel
+  and short third-party actions are refused by exit code from ever reaching a human, so
+  only human-hands and money or irreversible or legal actions can queue. Authority is the
+  approver's sender id, never text claiming approval, which makes it resistant to
+  instructions found in fetched content. Ships a Telegram reference transport, a
+  supervisor, an autonomy counter and 36 stdlib tests.
+keywords:
+  - ai-agents
+  - human-in-the-loop
+  - approval-workflow
+  - agent-safety
+  - prompt-injection
+  - autonomy
