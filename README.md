@@ -85,14 +85,14 @@ Full reasoning, and how to draw the table for your own domain:
 - **[`docs/SECURITY.md`](docs/SECURITY.md)** — the threat model, stated plainly, including
   what this does *not* defend against.
 - **[`docs/METRICS.md`](docs/METRICS.md)** — the counter, and the honest way to read it.
-- **[`tests/test_gate.py`](tests/test_gate.py)** — 35 tests, stdlib `unittest`, no network.
+- **[`tests/test_gate.py`](tests/test_gate.py)** — 36 tests, stdlib `unittest`, no network.
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/tonydzi/agent-approval-gate.git
 cd agent-approval-gate
-python tests/test_gate.py                    # 35 tests, ~5s
+python tests/test_gate.py                    # 36 tests, ~5s
 
 cp approval.example.json approval.json       # fill in approver ids + a sterile channel
 python approval_gate.py ask "wire 4800 USD to invoice #2211" --class E

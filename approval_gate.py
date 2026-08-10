@@ -310,10 +310,15 @@ def _approver_of(cfg, msg):
 def _same_identity(channel, got, want):
     got_s, want_s = str(got).strip(), str(want).strip()
     if channel in ("sms", "whatsapp", "wa", "phone"):
-        # phone numbers arrive formatted a dozen ways; compare the last 10 digits
+        # Phone numbers arrive formatted a dozen ways (+1 (555) 010-0001 / 15550100001 /
+        # 555-0100001), so compare the last 10 digits rather than the string. The length
+        # floor matters: without it a misconfigured 4-digit `want` would match any sender
+        # whose number happens to end the same way. Too short on either side -> no match.
         g = re.sub(r"\D", "", got_s)
         w = re.sub(r"\D", "", want_s)
-        return bool(g) and bool(w) and g[-10:] == w[-10:]
+        if len(g) < 7 or len(w) < 7:
+            return False
+        return g[-10:] == w[-10:]
     return got_s.casefold() == want_s.casefold()
 
 
@@ -444,9 +449,17 @@ def cmd_check():
 
             new_status = "approved" if verdict == "approve" else "rejected"
             by = "%s@%s:%s" % (approver, m.get("channel"), m.get("sender_id"))
-            c.execute("UPDATE pending SET status=?, decided=?, decided_by=? WHERE id=?",
-                      (new_status, _now(), by, pid))
+            # The status guard is repeated in the UPDATE on purpose. The SELECT above and
+            # this write are two statements: with two supervisors running (or a retry that
+            # overlaps its predecessor) both can read 'pending' and both can write, and the
+            # second silently overturns the first. Deciding inside the write, and believing
+            # only a rowcount of 1, is what actually makes a question one-time.
+            n = c.execute("UPDATE pending SET status=?, decided=?, decided_by=? "
+                          "WHERE id=? AND status NOT IN ('approved','rejected')",
+                          (new_status, _now(), by, pid)).rowcount
             c.commit()
+            if not n:
+                continue  # somebody else decided it between our read and our write
             decided_any = True
             _journal(new_status, id=pid, by=by, bound=bool(bound))
             print("%s %s :: %s" % (new_status.upper(), pid, ptext))

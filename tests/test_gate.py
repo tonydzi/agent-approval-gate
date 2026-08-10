@@ -36,6 +36,7 @@ CONFIG = {
     "approvers": [
         {"name": "Alex Rivera", "ids": {"telegram": "100000001", "sms": "+1 (555) 010-0001"}},
         {"name": "Unfilled Deputy", "ids": {}},
+        {"name": "Fat Fingered", "ids": {"sms": "n/a"}},
     ],
     "targets": {"primary": "-1000000000001"},
 }
@@ -158,6 +159,21 @@ class TestBreakers(GateCase):
         r = self.run_gate(["check"], stdin=self.reply("+", sender="999999999"), now=1000060)
         self.assertIn("no valid decision", r.stdout)
         self.assertIn("[pending]", self.run_gate(["pending"]).stdout.replace("E/pending", "pending"))
+
+    def test_non_numeric_phone_config_does_not_match_everything(self):
+        # the fail-open the length floor actually closes: an approver whose sms id is
+        # typed as "n/a" strips to "" digits, and so does a sender_id like "unknown" --
+        # "" == "" would authorize any junk sender. Both sides need real digits.
+        self.ask()
+        r = self.run_gate(["check"], now=1000060,
+                          stdin=self.reply("+", sender="unknown", channel="sms"))
+        self.assertIn("no valid decision", r.stdout)
+
+    # NOTE on concurrency: cmd_check repeats the status guard inside the UPDATE, so two
+    # supervisors that both read 'pending' cannot both write. There is deliberately no
+    # test for it here -- a threaded race passes on broken code most of the time, and a
+    # guard that only sometimes reddens is worse than an honest comment. The sequential
+    # one-time-ness is covered by the two double-answer tests above.
 
     def test_inert_approver_cannot_approve(self):
         # the deputy with no ids must never match, even on a message with no sender
