@@ -94,7 +94,26 @@ If you fork the engine, keep that seam.
 compares the last 10 digits for phone-shaped channels. Exact string comparison here will
 silently reject your own approver.
 
-### 12. "Delivered" is not "decided"
+### 12. Expiring a question is not the same as closing it
+
+The one that nearly shipped. A bare `+` arriving long after the window is ambiguous — we
+cannot tell which question it means — so it is correctly not honoured. The first version
+also marked that question `expired`. But `due` only re-pings rows whose status is
+`pending`, so the moment somebody tried to answer late, the question was retired *silently
+and permanently*. The agent then waited forever for a decision that had been thrown away —
+which is the exact hang this whole thing exists to prevent.
+
+Now the ambiguous reply is ignored and the question **stays pending**, so the supervisor
+re-asks it with a fresh envelope the human can answer unambiguously.
+
+The general shape, worth checking in your own state machines: **every non-terminal state
+must have something that moves it forward.** Grep for each status your code can write and
+ask which loop picks it up. `expired` had no reader.
+
+This one was found by running the flow end to end, not by reading the code. It reads
+perfectly fine.
+
+### 13. "Delivered" is not "decided"
 
 The one that matters most and has no code fix. A question posted to a channel is not a
 question answered. Our ask queue once grew faster than it was read, and the gate reported

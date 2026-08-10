@@ -203,6 +203,24 @@ class TestBreakers(GateCase):
         r = self.run_gate(["check"], stdin=self.reply("+"), now=1000000 + 16 * 60)
         self.assertIn("EXPIRED %s" % q["id"], r.stdout)
 
+    def test_expiry_does_not_silently_kill_the_question(self):
+        # the dead-end: an ambiguous late '+' must not be honoured, but it must not
+        # retire the question either. Found by running the flow, not by reading it:
+        # `due` only sees pending rows, so marking it 'expired' made the agent wait
+        # forever for a decision that had been thrown away.
+        q = self.ask(now=1000000)
+        self.run_gate(["check"], stdin=self.reply("+"), now=1000000 + 16 * 60)
+        due = json.loads(self.run_gate(["due"], now=1000000 + 20 * 60).stdout)["due"]
+        self.assertTrue(due, "an expired question must still be re-asked")
+        self.assertEqual(due[0]["id"], q["id"])
+
+    def test_the_reasked_question_can_then_be_answered(self):
+        q = self.ask(now=1000000)
+        self.run_gate(["check"], stdin=self.reply("+"), now=1000000 + 16 * 60)
+        self.run_gate(["due"], now=1000000 + 20 * 60)          # re-ping rearms the timer
+        r = self.run_gate(["check"], stdin=self.reply("+"), now=1000000 + 21 * 60)
+        self.assertIn("APPROVED %s" % q["id"], r.stdout)
+
     def test_bound_reply_is_honoured_long_after_the_window(self):
         q = self.ask(now=1000000)
         four_hours = 1000000 + 4 * 3600

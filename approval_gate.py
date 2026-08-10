@@ -426,10 +426,18 @@ def cmd_check():
             if status != "pending" and not bound:
                 continue
             if not bound and _now() - created > fresh:
-                c.execute("UPDATE pending SET status='expired' WHERE id=?", (pid,))
-                c.commit()
-                _journal("expired", id=pid)
-                print("EXPIRED %s :: %s  (older than %sm -> re-ask)"
+                # The answer is ambiguous (a bare '+' long after the fact -- which question
+                # did they mean?), so we do NOT honour it. But the question stays PENDING.
+                #
+                # An earlier version set status='expired' here, and `due` only looks at
+                # pending rows: the question was silently retired the moment someone tried
+                # to answer it late. The agent then waited forever for a decision that had
+                # been thrown away -- the exact hang this whole file exists to prevent.
+                # Now the supervisor re-asks it on the next tick, with a fresh envelope the
+                # human can reply to unambiguously.
+                _journal("late_free_reply_ignored", id=pid, age_s=_now() - created)
+                print("EXPIRED %s :: %s  (bare reply older than %sm is ambiguous -- "
+                      "not honoured; the question stays open and will be re-asked)"
                       % (pid, ptext, cfg.get("freshness_min", 15)))
                 decided_any = True
                 continue
