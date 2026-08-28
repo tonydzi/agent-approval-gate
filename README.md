@@ -11,7 +11,7 @@ This is the small, dependency-free gate we built instead. The ask goes to a mess
 `+` comes back into the run, silence escalates and then gives up, and a day-old question is
 never resurrected into someone's morning.
 
-Built and running daily at [Palo Alto AI Research Lab](https://github.com/tonydzi/Palo-Alto-AI-Research-Lab)
+Built and running daily at [Palo Alto AI Research Lab](https://github.com/tonydzi/tonydzi)
 across a fleet of autonomous Claude agents on five machines.
 
 ```console
