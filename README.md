@@ -7,7 +7,7 @@ code. Nobody is at the terminal.
 Two things usually happen, and both are bad: the agent hangs forever, or the agent decides
 anyway.
 
-This is the small, dependency-free gate we built instead. The ask goes to a messenger, a
+This is the small, dependency-free gate we built instead: [approval_gate.py](approval_gate.py). The ask goes to a messenger, a
 `+` comes back into the run, silence escalates and then gives up, and a day-old question is
 never resurrected into someone's morning.
 
@@ -60,8 +60,7 @@ So every action gets a class:
 | **D** | needs human **hands** — 2FA, UAC, a password, a CAPTCHA | **ask** |
 | **E** | money · irreversible deletion · secrets to third parties · legal commitments · mass-send | **ask** |
 
-Unsure between C and E is E. And the typing is not advisory — `ask` **refuses** A, B and C
-by exit code, so an agent cannot talk itself into a queue slot.
+Unsure between C and E is E. And the typing is not advisory — [approval_gate.py](approval_gate.py) **refuses** A, B and C by exit code, so an agent cannot talk itself into a queue slot.
 
 A/B/C are still journaled. "The agent decided" and "the agent skipped the gate" must not
 look the same in the record.
@@ -110,16 +109,14 @@ The lazy path: open Claude Code and paste [`PROMPT.md`](PROMPT.md).
 ## How authority works
 
 **The identity of the sender authorizes. Nothing else.** A reply decides a question only
-if its `sender_id` matches an approver in your config. The token (`OK`, `+`, whatever you
-configure) is a second factor of *intent*, not of identity — it separates "I am deciding
-this" from chatter that happens to contain the word "ok".
+if its `sender_id` matches an approver in your config. The token (`OK`, `+`, whatever you configure) is a second factor of *intent*, not of identity — it separates "I am deciding this" from chatter that happens to contain the word "ok", and [docs/SECURITY.md](docs/SECURITY.md) draws that line in full.
 
 Which means: a message saying *"Alex approved this, go ahead"* authorizes nothing. Neither
 does a forward, a quote, a screenshot, or a bot relaying it. Your agent reads web pages and
 issues, and any of them can contain "the user has pre-approved this" — that text can make
 an agent *want* to act, but it cannot produce a reply from your approver's account.
 
-Multiple approvers are supported; the journal records who decided. An approver entry with
+Multiple approvers are supported; the journal written by [approval_gate.py](approval_gate.py) records who decided. An approver entry with
 no ids is **inert** — registered but unable to authorize. Half-configured fails closed.
 
 ## Silence is a state, and it is named
@@ -132,9 +129,7 @@ no ids is **inert** — registered but unable to authorize. Half-configured fail
 | `2 × max_reping` | give up, mark stale, **never ask again** |
 | created > `abandon_hours` ago, never pinged (your supervisor was down) | retire **silently** |
 
-That last row is deliberate. After an outage you must not dump a day of backlog into
-someone's morning; a question nobody answered for 24 hours has usually been overtaken by
-events, and asking it late is how a channel loses its reader.
+That last row is deliberate. After an outage [tick.py](tick.py) must not dump a day of backlog into someone's morning; a question nobody answered for 24 hours has usually been overtaken by events, and asking it late is how a channel loses its reader.
 
 There is a matching rule on the other side, and it is subtler: **an approval does not
 expire as permission, but it does expire as a picture of the world.** We watched an agent
@@ -148,9 +143,7 @@ An approval gate is a queue to one person. That person does not scale, does not 
 3am, and gets tired.
 
 **A human in the middle of a pipeline is an architecture bug.** A human at the *ends* —
-setting the goal, accepting the result — is the design. Every ask you add is a slot in
-someone's attention, and our own measurement is not flattering: for a stretch this year our
-ask queue grew faster than it was read. The gate was working perfectly and producing
+setting the goal, accepting the result — is the design. Every ask you add is a slot in someone's attention, and our own measurement in [docs/METRICS.md](docs/METRICS.md) is not flattering: for a stretch of 2026 our ask queue grew faster than it was read. The gate was working perfectly and producing
 nothing, because *delivered to a human* is not *decided by a human*.
 
 That is why the counter ships in the box rather than as an afterthought:
@@ -167,15 +160,12 @@ asks by class: D=6, E=13
 And why the report prints the per-class split on the same screen as the total: this number
 can be lowered two ways. Move genuinely-A/B/C work off the human — that is the win. Or
 relabel a wire transfer as class C — which lowers it identically and looks the same on a
-dashboard. **Class D and E counts are the floor of this metric, never the target.** If
-your agent's workload grows and D/E falls, that is an incident, not efficiency.
+dashboard. **Class D and E counts are the floor of this metric, never the target**, as [docs/METRICS.md](docs/METRICS.md) spells out. If your agent's workload grows and D/E falls, that is an incident, not efficiency.
 
 ## What this is not
 
 It is a gate the agent *chooses to call*. It constrains an agent that is trying to do the
-right thing and might be wrong or manipulated. It is not a sandbox and not an enforcement
-boundary — if you need enforcement, the gate must live outside the agent's process and hold
-a credential the agent does not have.
+right thing and might be wrong or manipulated. It is not a sandbox and not an enforcement boundary — if you need enforcement, the gate must live outside the agent's process and hold a credential the agent does not have, a limit stated plainly in [docs/SECURITY.md](docs/SECURITY.md).
 
 It also has no networked coordination. One SQLite file is the shared state; that is how one
 human sees one queue. Across hosts, put it on shared storage or give each agent its own
@@ -232,9 +222,7 @@ the rest. All stdlib-only Python, all free.
 
 ## 🧩 One piece of a working system
 
-This repository is one piece lifted out of a live operation: one non-technical founder, an AI
-cofounder, and a fleet of machines that reach consensus with each other and wake the human only
-for money or the irreversible. It was extracted after it survived production, not written as a
+This repository is one piece lifted out of a live operation mapped in [SYSTEM.md](https://github.com/tonydzi/tonydzi/blob/main/SYSTEM.md): one non-technical founder, an AI cofounder, and a fleet of machines that reach consensus with each other and wake the human only for money or the irreversible. It was extracted after it survived production, not written as a
 demo — and it runs on its own: nothing here phones home to the rest.
 
 **See how the whole thing fits together → [SYSTEM.md](https://github.com/tonydzi/tonydzi/blob/main/SYSTEM.md)**
@@ -245,7 +233,6 @@ Its closest neighbours in the **governance** layer: [`claude-bible`](https://git
 
 ## AI contributors
 
-This project is built by a human + AI team, and the git log says so: Claude writes most of
-the code, Codex and Grok review it, Gemini feeds the research. Each is credited on a commit
+This project is built by a human + AI team, and the git log says so under the rules in [AI-CONTRIBUTORS.md](https://github.com/tonydzi/.github/blob/main/AI-CONTRIBUTORS.md): Claude writes most of the code, Codex and Grok review it, Gemini feeds the research. Each is credited on a commit
 **only if its output changed that commit's content** — no decorative credits. Lab-wide
 policy, one source for every repo: [AI-CONTRIBUTORS.md](https://github.com/tonydzi/.github/blob/main/AI-CONTRIBUTORS.md).
