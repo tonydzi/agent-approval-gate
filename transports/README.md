@@ -23,6 +23,7 @@ gate testable, auditable and portable. The engine speaks two shapes:
 | `channel` | yes | must match a key under an approver's `ids` in your config |
 | `sender_id` | yes | the platform's identity of the sender. **This is the authorization.** |
 | `text` | yes | the raw reply |
+| `sender_username` | no | Telegram only: the sender's @username. Lets an approver configured as `"@name"` match (case-insensitive, whole string). Prefer configuring the numeric id. |
 | `reply_to_text` | no | the message being replied to. Supply it if your platform has replies — it is how a late answer still lands on the right question. |
 
 Never synthesize `sender_id` from the message body. If your platform gives you a display

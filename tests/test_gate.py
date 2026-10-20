@@ -37,6 +37,7 @@ CONFIG = {
         {"name": "Alex Rivera", "ids": {"telegram": "100000001", "sms": "+1 (555) 010-0001"}},
         {"name": "Unfilled Deputy", "ids": {}},
         {"name": "Fat Fingered", "ids": {"sms": "n/a"}},
+        {"name": "Handle Person", "ids": {"telegram": "@Handle_Person"}},
     ],
     "targets": {"primary": "-1000000000001"},
 }
@@ -167,6 +168,49 @@ class TestBreakers(GateCase):
         self.ask()
         r = self.run_gate(["check"], now=1000060,
                           stdin=self.reply("+", sender="unknown", channel="sms"))
+        self.assertIn("no valid decision", r.stdout)
+
+    # --- telegram: configured @username vs numeric sender id (and vice versa) ----------
+
+    def _tg(self, **fields):
+        m = {"channel": "telegram", "text": "+"}
+        m.update(fields)
+        return json.dumps([m])
+
+    def test_configured_username_matches_sender_username(self):
+        q = self.ask()
+        r = self.run_gate(["check"], now=1000060,
+                          stdin=self._tg(sender_id="555000111", sender_username="handle_person"))
+        self.assertIn("APPROVED %s" % q["id"], r.stdout)
+
+    def test_username_match_ignores_case_and_leading_at(self):
+        q = self.ask()
+        r = self.run_gate(["check"], now=1000060,
+                          stdin=self._tg(sender_id="555000111", sender_username="@HANDLE_PERSON"))
+        self.assertIn("APPROVED %s" % q["id"], r.stdout)
+
+    def test_configured_numeric_id_matches_sender_id_even_with_other_username(self):
+        q = self.ask()
+        r = self.run_gate(["check"], now=1000060,
+                          stdin=self._tg(sender_id="100000001", sender_username="whoever"))
+        self.assertIn("APPROVED %s" % q["id"], r.stdout)
+
+    def test_similar_username_is_a_different_person(self):
+        self.ask()
+        for u in ("handle_person2", "xhandle_person", "handle", "handle_perso", "person"):
+            r = self.run_gate(["check"], now=1000060,
+                              stdin=self._tg(sender_id="555000111", sender_username=u))
+            self.assertIn("no valid decision", r.stdout, u)
+
+    def test_username_config_without_sender_username_does_not_match(self):
+        self.ask()
+        r = self.run_gate(["check"], now=1000060, stdin=self._tg(sender_id="555000111"))
+        self.assertIn("no valid decision", r.stdout)
+
+    def test_numeric_config_is_not_matched_by_a_username_field(self):
+        self.ask()
+        r = self.run_gate(["check"], now=1000060,
+                          stdin=self._tg(sender_id="555000111", sender_username="100000001"))
         self.assertIn("no valid decision", r.stdout)
 
     # NOTE on concurrency: cmd_check repeats the status guard inside the UPDATE, so two

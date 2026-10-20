@@ -302,13 +302,31 @@ def _approver_of(cfg, msg):
         got = msg.get("sender_id")
         if got is None:
             continue
-        if _same_identity(ch, got, ident):
+        if _same_identity(ch, got, ident, msg.get("sender_username")):
             return ap.get("name") or "approver"
     return None
 
 
-def _same_identity(channel, got, want):
+def _same_identity(channel, got, want, got_username=None):
     got_s, want_s = str(got).strip(), str(want).strip()
+    if channel == "telegram":
+        # Telegram has two spellings of "who": the numeric user id and the @username. An
+        # approver may be configured with either, while the reply carries the id (and,
+        # optionally, `sender_username`). Compare like with like, never across kinds:
+        #   numeric want  -> the sender's numeric id, exact
+        #   @name want    -> the sender's username, whole-string, case-insensitive,
+        #                    leading @ ignored (usernames are case-insensitive on Telegram)
+        # No prefix/substring matching, and a digits-only value is never a username.
+        if want_s.lstrip("@").isdigit() and not want_s.startswith("@"):
+            return got_s == want_s
+        w = want_s.lstrip("@").casefold()
+        if not w:
+            return False
+        for cand in (got_username, got_s):
+            c = str(cand if cand is not None else "").strip().lstrip("@").casefold()
+            if c and not c.isdigit() and c == w:
+                return True
+        return False
     if channel in ("sms", "whatsapp", "wa", "phone"):
         # Phone numbers arrive formatted a dozen ways (+1 (555) 010-0001 / 15550100001 /
         # 555-0100001), so compare the last 10 digits rather than the string. The length

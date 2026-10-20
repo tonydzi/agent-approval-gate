@@ -90,9 +90,12 @@ def fetch():
         reply_to = ((m.get("reply_to_message") or {}).get("text") or "")
         out.append({
             "channel": "telegram",
-            # The numeric user id is the identity. `username` is display text a stranger
-            # can change to anything; it must never authorize.
+            # The numeric user id is the preferred identity (configure approvers by id).
+            # `sender_username` is passed along ONLY so an approver configured as "@name"
+            # can still match; the gate compares it as a whole string. Usernames can be
+            # released and re-registered, so prefer the numeric id in your config.
             "sender_id": str(frm.get("id") or ""),
+            "sender_username": str(frm.get("username") or ""),
             "text": txt,
             "reply_to_text": reply_to,
         })
