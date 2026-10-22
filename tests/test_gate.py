@@ -328,6 +328,28 @@ class TestBreakers(GateCase):
 # --------------------------------------------------------------- silence
 
 class TestSilence(GateCase):
+    def test_stale_is_terminal_a_bound_reply_cannot_reopen_it(self):
+        q = self.ask(now=1000000)
+        self.run_gate(["due"], now=1000000 + 25 * 3600)  # backlog -> stale
+        r = self.run_gate(["check"], now=1000000 + 25 * 3600 + 60,
+                          stdin=self.reply("+", reply_to=q["ask_text"]))
+        self.assertNotIn("APPROVED", r.stdout)
+        self.assertIn("STALE %s" % q["id"], r.stdout)
+        self.assertIn("stale", self.run_gate(["pending"]).stdout)
+
+    def test_stale_is_terminal_for_a_typed_id_reply_too(self):
+        q = self.ask(now=1000000)
+        self.run_gate(["due"], now=1000000 + 25 * 3600)
+        r = self.run_gate(["check"], now=1000000 + 25 * 3600 + 60,
+                          stdin=self.reply("+ #%s" % q["id"]))
+        self.assertNotIn("APPROVED", r.stdout)
+
+    def test_unbound_late_plus_does_not_decide_a_stale_question(self):
+        self.ask(now=1000000)
+        self.run_gate(["due"], now=1000000 + 25 * 3600)
+        r = self.run_gate(["check"], now=1000000 + 25 * 3600 + 60, stdin=self.reply("+"))
+        self.assertNotIn("APPROVED", r.stdout)
+
     def test_not_due_inside_the_window(self):
         self.ask(now=1000000)
         due = json.loads(self.run_gate(["due"], now=1000000 + 60).stdout)["due"]

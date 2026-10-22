@@ -448,6 +448,15 @@ def cmd_check():
                 continue
             if status != "pending" and not bound:
                 continue
+            # `stale` is terminal: `due` retired this question because it was abandoned,
+            # so a late bound reply must not reinstate authority for a moot operation.
+            # (An old but still PENDING question stays answerable by a bound reply.)
+            if status == "stale":
+                _journal("late_reply_to_stale_ignored", id=pid, bound=bool(bound))
+                print("STALE %s :: %s  (retired as abandoned -- a late reply does not "
+                      "reopen it; ask again if it is still needed)" % (pid, ptext))
+                decided_any = True
+                continue
             if not bound and _now() - created > fresh:
                 # The answer is ambiguous (a bare '+' long after the fact -- which question
                 # did they mean?), so we do NOT honour it. But the question stays PENDING.
@@ -473,7 +482,7 @@ def cmd_check():
             # second silently overturns the first. Deciding inside the write, and believing
             # only a rowcount of 1, is what actually makes a question one-time.
             n = c.execute("UPDATE pending SET status=?, decided=?, decided_by=? "
-                          "WHERE id=? AND status NOT IN ('approved','rejected')",
+                          "WHERE id=? AND status='pending'",
                           (new_status, _now(), by, pid)).rowcount
             c.commit()
             if not n:

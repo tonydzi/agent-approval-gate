@@ -86,3 +86,7 @@ them.
 - Sharing one database between agents is supported and is how one human sees one queue —
   but it means one filesystem. Across hosts, put it on shared storage or give each agent
   its own db and its own channel; there is no networked coordination in this file.
+
+## `stale` is terminal
+
+A question that `due` retired as `stale` (abandoned backlog, or past the re-ping cap) can no longer be decided: a late bound reply (`+ #id` or a quote of the envelope) is journaled as `late_reply_to_stale_ignored` and does nothing. An old but still `pending` question can still be answered by a bound reply, regardless of age. If the operation is still needed, ask again. Reported by @Nakagawa-master in issue #1.
