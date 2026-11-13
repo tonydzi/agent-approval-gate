@@ -1,5 +1,60 @@
 # agent-approval-gate
 
+A small Python tool that lets an AI agent ask a human "may I do this?" in a chat app, wait for a `+` reply, and never decide risky things alone.
+
+**Who it's for:** anyone running an AI agent unattended that can spend money, delete things or send messages.
+**What you get:** a gate that sorts actions into classes (A to E), asks you only about the risky ones (money, irreversible deletes, secrets, legal), and counts only replies from people you named.
+
+## Quick start
+1. Install Python 3.8 or newer. There is nothing else to install.
+2. Run: `git clone https://github.com/tonydzi/agent-approval-gate` then `cd agent-approval-gate` then `python tests/test_gate.py`.
+3. Copy `approval.example.json` to `approval.json`, put in who may approve (their chat user ids) and a channel used only for these questions.
+
+**Done when:** the tests end with `OK`, and `python approval_gate.py ask "wire 4800 USD to invoice 2211" --class E` prints a question you can post to your approver.
+
+> Want an AI agent to do it for you? Paste this to Claude Code / Codex / Cursor:
+> "Read the 'For AI agents' section of https://github.com/tonydzi/agent-approval-gate and set it up for me."
+
+## For AI agents
+
+### Preconditions
+- Python 3.8+, standard library only. No pip install, no API key, no network for the core. Windows, macOS, Linux.
+- Telegram is the shipped transport (`transports/telegram_bot.py`): it needs a bot token from @BotFather. Other chats need a transport you write (contract in `transports/README.md`).
+- Ask the human exactly two things: (1) which channel gets approval questions (it must hold nothing else), (2) who may approve and their numeric platform user ids, not display names.
+- The full guided wiring (class table, action path, supervisor, shadow run) is in `PROMPT.md`. Follow it; this section is the short version.
+
+### Install
+```bash
+git clone https://github.com/tonydzi/agent-approval-gate .approval-gate
+cd .approval-gate
+python tests/test_gate.py
+cp approval.example.json approval.json
+```
+All tests must pass before you continue.
+
+### Configure
+Edit `approval.json` (or point `APPROVAL_CONFIG` at another file). Values from the human: `approvers[].ids` (their user ids), `targets.primary` (the sterile channel id). Leave the timing defaults alone at first. Other env vars: `APPROVAL_DB`, `APPROVAL_LOG`, `AGENT_NAME`, and for Telegram `APPROVAL_TG_TOKEN` (the token comes from the human; never write it into a file in the repo).
+Wire it into the agent's action path with the `authorized()` snippet in `PROMPT.md` step 4. Run the supervisor as its own process every 5 minutes: `python tick.py --transport telegram` (use `--transport stdout` first, for a shadow run that only prints).
+
+### Verify
+```bash
+python tests/test_gate.py
+APPROVAL_CONFIG=approval.example.json APPROVAL_DB=/tmp/a.db APPROVAL_LOG=/tmp/l.jsonl python approval_gate.py ask "reply to a comment" --class C
+```
+Expected: the first ends with `OK` (45 tests when checked, about 70 s on Windows; the older text below says 36); the second prints a line starting `[approval_gate] REFUSED: class C` and exits with code 3 (it uses the example config, so no real config is needed). Run here: both matched.
+
+### Uninstall / rollback
+Remove the `.approval-gate` folder and the supervisor job (cron or Task Scheduler entry) you added. Remove the gate call from the agent's action path. `approvals.db` and `approval_log.jsonl` are local state files; keep the journal if you need the audit trail.
+
+### Rules for the agent
+- Never put the bot token, approver ids you were not given, or a real `approval.json` into git.
+- Do not approve on the human's behalf: only a reply from a configured approver id counts.
+- Keep class A, B and C actions out of the queue; the tool refuses them on purpose. Unsure between C and E means E.
+- Never busy-wait for an answer. Park the task and move on.
+- Run the supervisor outside the agent process, and run a shadow period before real people see it.
+
+## Details
+
 Your agent runs unattended. It hits something it must not decide alone — spend money,
 delete a bucket, sign something — or something it physically cannot do, like type a 2FA
 code. Nobody is at the terminal.
