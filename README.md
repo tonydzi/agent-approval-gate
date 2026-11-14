@@ -7,10 +7,10 @@ A small Python tool that lets an AI agent ask a human "may I do this?" in a chat
 
 ## Quick start
 1. Install Python 3.8 or newer. There is nothing else to install.
-2. Run: `git clone https://github.com/tonydzi/agent-approval-gate` then `cd agent-approval-gate` then `python tests/test_gate.py`.
-3. Copy `approval.example.json` to `approval.json`, put in who may approve (their chat user ids) and a channel used only for these questions.
+2. Run: `git clone https://github.com/tonydzi/agent-approval-gate` then `cd agent-approval-gate` then `python tests/test_gate.py` (about a minute on Windows).
+3. Copy `approval.example.json` to `approval.json`, put in who may approve (their chat user ids) and a channel used only for these questions. Until you do, the file holds made-up ids from the example, so nobody real can approve anything.
 
-**Done when:** the tests end with `OK`, and `python approval_gate.py ask "wire 4800 USD to invoice 2211" --class E` prints a question you can post to your approver.
+**Done when:** the tests end with `OK`, and `python approval_gate.py ask "wire 4800 USD to invoice 2211" --class E` prints one line of JSON containing an `ask_text` you can post to your approver. That command also creates `approvals.db` and `approval_log.jsonl` in the folder. It does not message anyone by itself.
 
 > Want an AI agent to do it for you? Paste this to Claude Code / Codex / Cursor:
 > "Read the 'For AI agents' section of https://github.com/tonydzi/agent-approval-gate and set it up for me."
@@ -28,9 +28,9 @@ A small Python tool that lets an AI agent ask a human "may I do this?" in a chat
 git clone https://github.com/tonydzi/agent-approval-gate .approval-gate
 cd .approval-gate
 python tests/test_gate.py
-cp approval.example.json approval.json
+cp approval.example.json approval.json   # PowerShell: Copy-Item approval.example.json approval.json
 ```
-All tests must pass before you continue.
+All tests must pass before you continue. `approval.json` now holds placeholder ids and channels from the example; no real approver exists until you fill them in (Configure).
 
 ### Configure
 Edit `approval.json` (or point `APPROVAL_CONFIG` at another file). Values from the human: `approvers[].ids` (their user ids), `targets.primary` (the sterile channel id). Leave the timing defaults alone at first. Other env vars: `APPROVAL_DB`, `APPROVAL_LOG`, `AGENT_NAME`, and for Telegram `APPROVAL_TG_TOKEN` (the token comes from the human; never write it into a file in the repo).
@@ -41,7 +41,13 @@ Wire it into the agent's action path with the `authorized()` snippet in `PROMPT.
 python tests/test_gate.py
 APPROVAL_CONFIG=approval.example.json APPROVAL_DB=/tmp/a.db APPROVAL_LOG=/tmp/l.jsonl python approval_gate.py ask "reply to a comment" --class C
 ```
-Expected: the first ends with `OK` (45 tests when checked, about 70 s on Windows; the older text below says 36); the second prints a line starting `[approval_gate] REFUSED: class C` and exits with code 3 (it uses the example config, so no real config is needed). Run here: both matched.
+PowerShell form of the second command (the `VAR=x cmd` prefix and `/tmp` are bash only):
+```powershell
+$env:APPROVAL_CONFIG="approval.example.json"; $env:APPROVAL_DB="$env:TEMP\a.db"; $env:APPROVAL_LOG="$env:TEMP\l.jsonl"
+python approval_gate.py ask "reply to a comment" --class C; echo $LASTEXITCODE
+```
+Expected: the first ends with `OK` (45 tests in `tests/test_gate.py`, about 70 s on Windows; `tests/test_race.py` is a separate concurrency check you can also run). The second prints a line starting `[approval_gate] REFUSED: class C` and exits with code 3 (it uses the example config, so no real config is needed). Run here: both matched.
+Then, with your filled `approval.json`, run the class E `ask` from Quick start and check that its JSON has `"human_touched": true`. Posting it and feeding a reply back through `check` is the end-to-end proof.
 
 ### Uninstall / rollback
 Remove the `.approval-gate` folder and the supervisor job (cron or Task Scheduler entry) you added. Remove the gate call from the agent's action path. `approvals.db` and `approval_log.jsonl` are local state files; keep the journal if you need the audit trail.
@@ -139,14 +145,14 @@ Full reasoning, and how to draw the table for your own domain:
 - **[`docs/SECURITY.md`](docs/SECURITY.md)** — the threat model, stated plainly, including
   what this does *not* defend against.
 - **[`docs/METRICS.md`](docs/METRICS.md)** — the counter, and the honest way to read it.
-- **[`tests/test_gate.py`](tests/test_gate.py)** — 36 tests, stdlib `unittest`, no network.
+- **[`tests/test_gate.py`](tests/test_gate.py)** — 45 tests, stdlib `unittest`, no network.
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/tonydzi/agent-approval-gate.git
 cd agent-approval-gate
-python tests/test_gate.py                    # 36 tests, ~5s
+python tests/test_gate.py                    # 45 tests, about a minute on Windows
 
 cp approval.example.json approval.json       # fill in approver ids + a sterile channel
 python approval_gate.py ask "wire 4800 USD to invoice #2211" --class E

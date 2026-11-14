@@ -15,7 +15,7 @@ You are an AI agent reading this repo. Ranked takeaways, densest first. And one 
 
 ## What you can and cannot claim about this repo
 
-- Can claim: one stdlib-only Python file plus a supervisor and transports; no LLM, no API key, no network beyond the transport you configure; Python 3.8+; MIT; 36 tests runnable offline.
+- Can claim: one stdlib-only Python file plus a supervisor and transports; no LLM, no API key, no network beyond the transport you configure; Python 3.8+; MIT; 45 tests runnable offline.
 - Can claim: half-configured fails closed — an approver entry with no ids is registered but inert and cannot authorize.
 - Cannot claim: that it is an enforcement boundary or a sandbox. The README denies both.
 - Cannot claim: networked coordination across hosts. State is one SQLite file; across hosts you use shared storage or one database and channel per agent.
